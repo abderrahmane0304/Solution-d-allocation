@@ -29,7 +29,13 @@ import {
   getAuthUsersAPI,
   getShiftsAPI,
   saveShiftConfigAPI,
-  getShiftDashboardAPI
+  getShiftDashboardAPI,
+  createLigneAPI,
+  updateLigneAPI,
+  deleteLigneAPI,
+  createPosteAPI,
+  updatePosteAPI,
+  deletePosteAPI
 } from './services/apiService';
 
 // ─── MOCK DATA ────────────────────────────────────────────────────────────────
@@ -1152,10 +1158,322 @@ function DashboardPage({ lignes, setLignes, setSelectedPoste, showAbsenceModal, 
   );
 }
 
+// ─── MODAL : CRÉER / MODIFIER UNE LIGNE ─────────────────────────────────────────
+const LigneModal = ({ isOpen, onClose, ligne, onSave }) => {
+  const [nom, setNom] = useState(ligne ? ligne.nom : '');
+  const [objectif, setObjectif] = useState(ligne ? ligne.objectif : 1800);
+  const [efficience, setEfficience] = useState(ligne ? ligne.efficience : 90);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (ligne) {
+      setNom(ligne.nom);
+      setObjectif(ligne.objectif);
+      setEfficience(ligne.efficience);
+    } else {
+      setNom('');
+      setObjectif(1800);
+      setEfficience(90);
+    }
+  }, [ligne, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!nom.trim()) return;
+    setSaving(true);
+    await onSave({ nom: nom.trim(), objectif: Number(objectif), efficience: Number(efficience) });
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content" style={{ maxWidth: '520px' }}>
+        <div className="modal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ background: 'rgba(99,102,241,0.15)', padding: '0.6rem', borderRadius: '50%' }}>
+              <Factory size={22} color="var(--accent-indigo)" />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700 }}>
+                {ligne ? 'Modifier la Ligne de Production' : 'Nouvelle Ligne de Production'}
+              </h2>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                {ligne ? 'Ajustez les cadences et paramètres de la ligne' : 'Configurez une nouvelle chaîne de confection textile'}
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <label className="form-label">Nom de la Ligne *</label>
+            <input
+              type="text"
+              className="form-select"
+              required
+              placeholder="ex: Ligne 4 - Chemises Oxford (Montage)"
+              value={nom}
+              onChange={e => setNom(e.target.value)}
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div>
+              <label className="form-label">Objectif Journalier (pcs)</label>
+              <input
+                type="number"
+                className="form-select"
+                min="100"
+                max="10000"
+                step="50"
+                value={objectif}
+                onChange={e => setObjectif(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="form-label">Cible OEE / TRS (%)</label>
+              <input
+                type="number"
+                className="form-select"
+                min="50"
+                max="100"
+                value={efficience}
+                onChange={e => setEfficience(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.75rem' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{ padding: '0.6rem 1rem', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: '8px', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={saving || !nom.trim()}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem', background: 'var(--accent-indigo)', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}
+            >
+              {saving ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Save size={16} />}
+              {ligne ? 'Enregistrer les modifications' : 'Créer la Ligne'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ─── MODAL : AJOUTER / MODIFIER UN POSTE ────────────────────────────────────────
+const PosteModal = ({ isOpen, onClose, ligne, poste, onSave }) => {
+  const [nom, setNom] = useState(poste ? poste.nom : '');
+  const [competence, setCompetence] = useState(poste ? poste.competence : 'Surjeteuse');
+  const [niveauRequis, setNiveauRequis] = useState(poste ? poste.niveau_requis : 2);
+  const [cadence, setCadence] = useState(poste ? poste.cadence : 120);
+  const [estCritique, setEstCritique] = useState(poste ? Boolean(poste.est_critique) : false);
+  const [saving, setSaving] = useState(false);
+
+  const COMPETENCES_OPTIONS = [
+    'Surjeteuse',
+    'Piqueuse Plate',
+    'Automatiste',
+    'Ourlage',
+    'Contrôle Qualité',
+    'Coupe',
+    'Thermocollage',
+    'Pose Boutons'
+  ];
+
+  useEffect(() => {
+    if (poste) {
+      setNom(poste.nom);
+      setCompetence(poste.competence || 'Surjeteuse');
+      setNiveauRequis(poste.niveau_requis || 2);
+      setCadence(poste.cadence || 120);
+      setEstCritique(Boolean(poste.est_critique));
+    } else {
+      setNom('');
+      setCompetence('Surjeteuse');
+      setNiveauRequis(2);
+      setCadence(120);
+      setEstCritique(false);
+    }
+  }, [poste, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!nom.trim()) return;
+    setSaving(true);
+    await onSave({
+      ligne_id: ligne ? ligne.id : (poste ? poste.ligne_id : 1),
+      nom: nom.trim(),
+      competence,
+      niveau_requis: Number(niveauRequis),
+      cadence: Number(cadence),
+      est_critique: estCritique ? 1 : 0
+    });
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content" style={{ maxWidth: '540px' }}>
+        <div className="modal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ background: estCritique ? 'rgba(239,68,68,0.15)' : 'rgba(99,102,241,0.15)', padding: '0.6rem', borderRadius: '50%' }}>
+              {estCritique ? <AlertTriangle size={22} color="var(--status-critical)" /> : <Cpu size={22} color="var(--accent-indigo)" />}
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700 }}>
+                {poste ? 'Modifier le Poste de Travail' : `Ajouter un Poste · ${ligne?.nom || ''}`}
+              </h2>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                Définissez les prérequis machines, cadences et criticité du poste
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <label className="form-label">Nom du Poste / Opération *</label>
+            <input
+              type="text"
+              className="form-select"
+              required
+              placeholder="ex: Surjeteuse 4 fils (Manches)"
+              value={nom}
+              onChange={e => setNom(e.target.value)}
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div>
+              <label className="form-label">Compétence Machine *</label>
+              <select
+                className="form-select"
+                value={competence}
+                onChange={e => setCompetence(e.target.value)}
+              >
+                {COMPETENCES_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="form-label">Niveau Requis (1 à 4)</label>
+              <select
+                className="form-select"
+                value={niveauRequis}
+                onChange={e => setNiveauRequis(e.target.value)}
+              >
+                <option value={1}>1 - Débutant</option>
+                <option value={2}>2 - En cours (Standard)</option>
+                <option value={3}>3 - Autonome</option>
+                <option value={4}>4 - Expert</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div>
+              <label className="form-label">Cadence Standard (pièces/h)</label>
+              <input
+                type="number"
+                className="form-select"
+                min="30"
+                max="500"
+                value={cadence}
+                onChange={e => setCadence(e.target.value)}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <label className="form-label" style={{ marginBottom: '6px' }}>Criticité Poste</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', padding: '0.5rem 0.75rem', background: estCritique ? 'rgba(239,68,68,0.1)' : 'var(--bg-base)', border: `1px solid ${estCritique ? 'rgba(239,68,68,0.4)' : 'var(--border-subtle)'}`, borderRadius: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={estCritique}
+                  onChange={e => setEstCritique(e.target.checked)}
+                  style={{ accentColor: 'var(--status-critical)', width: '16px', height: '16px', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: estCritique ? 'var(--status-critical)' : 'var(--text-secondary)' }}>
+                  {estCritique ? '🔴 Goulot d\'étranglement' : '🟡 Poste Standard'}
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.75rem' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{ padding: '0.6rem 1rem', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: '8px', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={saving || !nom.trim()}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem', background: 'var(--accent-indigo)', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}
+            >
+              {saving ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Save size={16} />}
+              {poste ? 'Enregistrer les modifications' : 'Ajouter le Poste'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ─── MODAL : CONFIRMATION DE SUPPRESSION ───────────────────────────────────────
+const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, title, message }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content" style={{ maxWidth: '420px', padding: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+          <div style={{ background: 'rgba(239,68,68,0.15)', padding: '0.6rem', borderRadius: '50%' }}>
+            <AlertTriangle size={24} color="var(--status-critical)" />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>{title}</h3>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>Cette action est irréversible.</p>
+          </div>
+        </div>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+          {message}
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+          <button
+            onClick={onClose}
+            style={{ padding: '0.5rem 1rem', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: '6px', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem' }}
+          >
+            Annuler
+          </button>
+          <button
+            onClick={onConfirm}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1.1rem', background: 'var(--status-critical)', border: 'none', borderRadius: '6px', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem' }}
+          >
+            <Trash2 size={14} /> Supprimer
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── PAGE: LIGNES DE PRODUCTION ────────────────────────────────────────────────
-function LignesPage({ lignes }) {
+function LignesPage({ lignes, onAddLigne, onEditLigne, onDeleteLigne, onAddPoste, onEditPoste, onDeletePoste }) {
   const [expandedLigne, setExpandedLigne] = useState(1);
-  const [showAddPoste, setShowAddPoste] = useState(false);
 
   return (
     <div className="dashboard-scroll">
@@ -1164,15 +1482,19 @@ function LignesPage({ lignes }) {
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Configuration des Lignes</h1>
           <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>Gérez les lignes de production, postes et leurs prérequis</p>
         </div>
-        <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem', background: 'var(--accent-indigo)', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: '0.875rem' }}>
+        <button
+          onClick={onAddLigne}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem', background: 'var(--accent-indigo)', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: '0.875rem' }}
+        >
           <Plus size={16} /> Nouvelle Ligne
         </button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         {lignes.map(ligne => {
-          const postesOK = ligne.postes.filter(p => p.operateur).length;
-          const pct = Math.round((postesOK / ligne.postes.length) * 100);
+          const postesOK = (ligne.postes || []).filter(p => p.operateur).length;
+          const totalPostes = (ligne.postes || []).length;
+          const pct = totalPostes > 0 ? Math.round((postesOK / totalPostes) * 100) : 0;
           const isOpen = expandedLigne === ligne.id;
           return (
             <div key={ligne.id} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
@@ -1181,12 +1503,12 @@ function LignesPage({ lignes }) {
                   {isOpen ? <ChevronDown size={20} color="var(--accent-indigo)" /> : <ChevronRight size={20} color="var(--text-muted)" />}
                   <div>
                     <h3 style={{ fontWeight: 700, fontSize: '1rem' }}>{ligne.nom}</h3>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>{ligne.postes.length} postes · {postesOK} couverts</p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>{totalPostes} postes · {postesOK} couverts</p>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: ligne.efficience >= 90 ? 'var(--status-ok)' : 'var(--status-warning)' }}>{ligne.efficience}%</div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: ligne.efficience >= 90 ? 'var(--status-ok)' : 'var(--status-warning)' }}>{ligne.efficience || 90}%</div>
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>OEE</div>
                   </div>
                   <div style={{ width: '100px' }}>
@@ -1196,8 +1518,20 @@ function LignesPage({ lignes }) {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button style={{ padding: '0.4rem', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: '6px', color: 'var(--text-secondary)', cursor: 'pointer' }}><Edit2 size={15} /></button>
-                    <button style={{ padding: '0.4rem', background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '6px', color: 'var(--status-critical)', cursor: 'pointer' }}><Trash2 size={15} /></button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onEditLigne && onEditLigne(ligne); }}
+                      style={{ padding: '0.4rem', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: '6px', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                      title="Modifier cette ligne"
+                    >
+                      <Edit2 size={15} />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onDeleteLigne && onDeleteLigne(ligne); }}
+                      style={{ padding: '0.4rem', background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '6px', color: 'var(--status-critical)', cursor: 'pointer' }}
+                      title="Supprimer cette ligne"
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1206,19 +1540,38 @@ function LignesPage({ lignes }) {
                 <div style={{ borderTop: '1px solid var(--border-subtle)', padding: '1.25rem 1.5rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <h4 style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Postes de Travail</h4>
-                    <button onClick={() => setShowAddPoste(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.35rem 0.75rem', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '6px', color: 'var(--accent-indigo)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
+                    <button
+                      onClick={() => onAddPoste && onAddPoste(ligne)}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.35rem 0.75rem', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '6px', color: 'var(--accent-indigo)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+                    >
                       <Plus size={14} /> Ajouter Poste
                     </button>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
-                    {ligne.postes.map(poste => (
+                    {(ligne.postes || []).map(poste => (
                       <div key={poste.id} style={{ background: 'var(--bg-base)', border: `1px solid ${!poste.operateur ? 'rgba(239,68,68,0.3)' : 'var(--border-subtle)'}`, borderRadius: '8px', padding: '1rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
                           <div>
                             <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{poste.nom}</div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>{poste.competence} · Niv. {poste.niveau_requis}</div>
                           </div>
-                          {poste.est_critique && <span style={{ fontSize: '0.65rem', fontWeight: 700, background: 'rgba(239,68,68,0.1)', color: 'var(--status-critical)', padding: '2px 6px', borderRadius: '4px' }}>GOULOT</span>}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                            {poste.est_critique && <span style={{ fontSize: '0.65rem', fontWeight: 700, background: 'rgba(239,68,68,0.1)', color: 'var(--status-critical)', padding: '2px 6px', borderRadius: '4px' }}>GOULOT</span>}
+                            <button
+                              onClick={() => onEditPoste && onEditPoste(ligne, poste)}
+                              style={{ padding: '3px 5px', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: '4px', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                              title="Modifier ce poste"
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                            <button
+                              onClick={() => onDeletePoste && onDeletePoste(ligne, poste)}
+                              style={{ padding: '3px 5px', background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '4px', color: 'var(--status-critical)', cursor: 'pointer' }}
+                              title="Supprimer ce poste"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
                         </div>
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                           <span>🎯 {poste.cadence} pièces/h</span>
@@ -1778,6 +2131,11 @@ export default function App() {
   const [showAbsenceModal, setShowAbsenceModal] = useState(false);
   const [isBackendConnected, setIsBackendConnected] = useState(false);
 
+  // ── 4. Modales de gestion des Lignes & Postes
+  const [ligneModal, setLigneModal] = useState({ isOpen: false, ligne: null });
+  const [posteModal, setPosteModal] = useState({ isOpen: false, ligne: null, poste: null });
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, type: 'ligne', id: null, ligneId: null, nom: '' });
+
   // Charger les données de la base SQLite et des Shifts au démarrage
   useEffect(() => {
     const initData = async () => {
@@ -1888,6 +2246,136 @@ export default function App() {
     }
   };
 
+  // ── 5. CRUD Lignes & Postes de production (avec synchronisation API SQLite)
+  const handleSaveLigne = async (ligneData) => {
+    if (ligneModal.ligne) {
+      const updatedNom = ligneData.nom;
+      const updatedObj = Number(ligneData.objectif);
+      const updatedEff = Number(ligneData.efficience);
+      setLignes(prev => prev.map(l => l.id === ligneModal.ligne.id ? { ...l, nom: updatedNom, objectif: updatedObj, efficience: updatedEff } : l));
+      if (isBackendConnected) {
+        try {
+          await updateLigneAPI(ligneModal.ligne.id, { nom: updatedNom, objectif: updatedObj, efficience: updatedEff });
+          const apiLignes = await getLignesFromAPI();
+          if (apiLignes && apiLignes.length > 0) setLignes(apiLignes);
+        } catch (err) {
+          console.warn('Erreur mise à jour ligne API:', err);
+        }
+      }
+    } else {
+      const tempId = Date.now();
+      const newLigne = {
+        id: tempId,
+        nom: ligneData.nom,
+        objectif: Number(ligneData.objectif) || 1800,
+        efficience: Number(ligneData.efficience) || 90,
+        production: 0,
+        postes: []
+      };
+      setLignes(prev => [...prev, newLigne]);
+      if (isBackendConnected) {
+        try {
+          const created = await createLigneAPI({ nom: ligneData.nom, objectif: newLigne.objectif, efficience: newLigne.efficience });
+          const apiLignes = await getLignesFromAPI();
+          if (apiLignes && apiLignes.length > 0) {
+            setLignes(apiLignes);
+          } else if (created && created.id) {
+            setLignes(prev => prev.map(l => l.id === tempId ? { ...l, id: created.id } : l));
+          }
+        } catch (err) {
+          console.warn('Erreur création ligne API:', err);
+        }
+      }
+    }
+    setLigneModal({ isOpen: false, ligne: null });
+  };
+
+  const handleSavePoste = async (posteData) => {
+    const { ligne, poste } = posteModal;
+    if (!ligne) return;
+
+    if (poste) {
+      setLignes(prev => prev.map(l => {
+        if (l.id !== ligne.id) return l;
+        return {
+          ...l,
+          postes: (l.postes || []).map(p => p.id === poste.id ? { ...p, ...posteData } : p)
+        };
+      }));
+      if (isBackendConnected) {
+        try {
+          await updatePosteAPI(poste.id, posteData);
+          const apiLignes = await getLignesFromAPI();
+          if (apiLignes && apiLignes.length > 0) setLignes(apiLignes);
+        } catch (err) {
+          console.warn('Erreur mise à jour poste API:', err);
+        }
+      }
+    } else {
+      const tempId = Date.now();
+      const newPoste = {
+        id: tempId,
+        ligne_id: ligne.id,
+        ...posteData,
+        operateur: null
+      };
+      setLignes(prev => prev.map(l => {
+        if (l.id !== ligne.id) return l;
+        return {
+          ...l,
+          postes: [...(l.postes || []), newPoste]
+        };
+      }));
+      if (isBackendConnected) {
+        try {
+          await createPosteAPI({
+            ligne_id: ligne.id,
+            ...posteData
+          });
+          const apiLignes = await getLignesFromAPI();
+          if (apiLignes && apiLignes.length > 0) setLignes(apiLignes);
+        } catch (err) {
+          console.warn('Erreur création poste API:', err);
+        }
+      }
+    }
+    setPosteModal({ isOpen: false, ligne: null, poste: null });
+  };
+
+  const handleConfirmDelete = async () => {
+    const { type, id, ligneId } = deleteModal;
+    if (type === 'ligne') {
+      setLignes(prev => prev.filter(l => l.id !== id));
+      if (isBackendConnected) {
+        try {
+          await deleteLigneAPI(id);
+          const apiLignes = await getLignesFromAPI();
+          if (apiLignes) setLignes(apiLignes);
+        } catch (err) {
+          console.warn('Erreur suppression ligne API:', err);
+        }
+      }
+    } else if (type === 'poste') {
+      setLignes(prev => prev.map(l => {
+        if (l.id !== ligneId) return l;
+        return {
+          ...l,
+          postes: (l.postes || []).filter(p => p.id !== id)
+        };
+      }));
+      if (isBackendConnected) {
+        try {
+          await deletePosteAPI(id);
+          const apiLignes = await getLignesFromAPI();
+          if (apiLignes) setLignes(apiLignes);
+        } catch (err) {
+          console.warn('Erreur suppression poste API:', err);
+        }
+      }
+    }
+    setDeleteModal({ isOpen: false, type: 'ligne', id: null, ligneId: null, nom: '' });
+  };
+
   // Si l'utilisateur n'est pas connecté, afficher la page de connexion
   if (!currentUser) {
     return <LoginPage onLogin={handleLogin} />;
@@ -1941,7 +2429,18 @@ export default function App() {
             onOpenShiftConfig={() => setShowShiftConfig(true)}
           />
         );
-      case 'lignes': return <LignesPage lignes={displayLignes} />;
+      case 'lignes':
+        return (
+          <LignesPage
+            lignes={displayLignes}
+            onAddLigne={() => setLigneModal({ isOpen: true, ligne: null })}
+            onEditLigne={(ligne) => setLigneModal({ isOpen: true, ligne })}
+            onDeleteLigne={(ligne) => setDeleteModal({ isOpen: true, type: 'ligne', id: ligne.id, ligneId: null, nom: ligne.nom })}
+            onAddPoste={(ligne) => setPosteModal({ isOpen: true, ligne, poste: null })}
+            onEditPoste={(ligne, poste) => setPosteModal({ isOpen: true, ligne, poste })}
+            onDeletePoste={(ligne, poste) => setDeleteModal({ isOpen: true, type: 'poste', id: poste.id, ligneId: ligne.id, nom: poste.nom })}
+          />
+        );
       case 'polyvalence': return <PolyvalencePage operateurs={operateurs} />;
       case 'rapports': return <RapportsPage lignes={displayLignes} operateurs={operateurs} />;
       case 'parametres':
@@ -1957,7 +2456,7 @@ export default function App() {
     }
   };
 
-  const postesVacantsCount = displayLignes.reduce((s, l) => s + l.postes.filter(p => !p.operateur).length, 0);
+  const postesVacantsCount = displayLignes.reduce((s, l) => s + (l.postes || []).filter(p => !p.operateur).length, 0);
 
   return (
     <div className="app-layout">
@@ -2178,6 +2677,34 @@ export default function App() {
           shifts={shifts}
           nombreShifts={nombreShifts}
           onSaveConfig={handleSaveShiftConfig}
+        />
+      )}
+
+      {/* MODALS CRUD LIGNES & POSTES */}
+      {ligneModal.isOpen && (
+        <LigneModal
+          isOpen={ligneModal.isOpen}
+          onClose={() => setLigneModal({ isOpen: false, ligne: null })}
+          ligne={ligneModal.ligne}
+          onSave={handleSaveLigne}
+        />
+      )}
+      {posteModal.isOpen && (
+        <PosteModal
+          isOpen={posteModal.isOpen}
+          onClose={() => setPosteModal({ isOpen: false, ligne: null, poste: null })}
+          ligne={posteModal.ligne}
+          poste={posteModal.poste}
+          onSave={handleSavePoste}
+        />
+      )}
+      {deleteModal.isOpen && (
+        <DeleteConfirmModal
+          isOpen={deleteModal.isOpen}
+          onClose={() => setDeleteModal({ isOpen: false, type: 'ligne', id: null, ligneId: null, nom: '' })}
+          onConfirm={handleConfirmDelete}
+          title={`Supprimer ${deleteModal.type === 'ligne' ? 'la ligne' : 'le poste'}`}
+          message={`Voulez-vous vraiment supprimer "${deleteModal.nom}" ? Tous les postes et affectations associés seront également retirés.`}
         />
       )}
     </div>

@@ -110,3 +110,61 @@ export async function getShiftDashboardAPI(shiftId) {
   return await res.json();
 }
 
+// ── CRUD Lignes de Production ────────────────────────────────────────────────
+export async function createLigneAPI(ligneData) {
+  const res = await fetch(`${API_BASE}/lignes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(ligneData)
+  });
+  if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+  return await res.json();
+}
+
+export async function updateLigneAPI(id, ligneData) {
+  const res = await fetch(`${API_BASE}/lignes/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(ligneData)
+  });
+  if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+  return await res.json();
+}
+
+export async function deleteLigneAPI(id) {
+  const res = await fetch(`${API_BASE}/lignes/${id}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+  return await res.json();
+}
+
+// ── CRUD Postes de Travail ───────────────────────────────────────────────────
+export async function createPosteAPI(posteData) {
+  const res = await fetch(`${API_BASE}/postes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(posteData)
+  });
+  if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+  return await res.json();
+}
+
+export async function updatePosteAPI(id, posteData) {
+  const res = await fetch(`${API_BASE}/postes/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(posteData)
+  });
+  if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+  return await res.json();
+}
+
+export async function deletePosteAPI(id) {
+  const res = await fetch(`${API_BASE}/postes/${id}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+  return await res.json();
+}
+

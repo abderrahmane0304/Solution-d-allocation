@@ -75,6 +75,160 @@ app.get('/api/lignes', (req, res) => {
   }
 });
 
+// ─── 2.1 Créer une ligne de production ───────────────────────────────────────
+app.post('/api/lignes', (req, res) => {
+  try {
+    const { nom, objectif = 1800, efficience = 90 } = req.body;
+    if (!nom || !nom.trim()) {
+      return res.status(400).json({ error: 'Le nom de la ligne est requis' });
+    }
+    const info = db.prepare('INSERT INTO Lignes (nom, objectif, efficience, production) VALUES (?, ?, ?, ?)').run(
+      nom.trim(),
+      Number(objectif) || 1800,
+      Number(efficience) || 90,
+      0
+    );
+    const newLigne = db.prepare('SELECT * FROM Lignes WHERE id = ?').get(info.lastInsertRowid);
+    res.status(201).json({ ...newLigne, postes: [] });
+  } catch (err) {
+    console.error('Erreur POST /api/lignes:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── 2.2 Modifier une ligne de production ────────────────────────────────────
+app.put('/api/lignes/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nom, objectif, efficience } = req.body;
+    const existing = db.prepare('SELECT * FROM Lignes WHERE id = ?').get(id);
+    if (!existing) {
+      return res.status(404).json({ error: 'Ligne introuvable' });
+    }
+    db.prepare(`
+      UPDATE Lignes 
+      SET nom = COALESCE(?, nom), 
+          objectif = COALESCE(?, objectif), 
+          efficience = COALESCE(?, efficience) 
+      WHERE id = ?
+    `).run(
+      nom !== undefined ? nom.trim() : null,
+      objectif !== undefined ? Number(objectif) : null,
+      efficience !== undefined ? Number(efficience) : null,
+      id
+    );
+    const updated = db.prepare('SELECT * FROM Lignes WHERE id = ?').get(id);
+    res.json(updated);
+  } catch (err) {
+    console.error('Erreur PUT /api/lignes/:id:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── 2.3 Supprimer une ligne de production ───────────────────────────────────
+app.delete('/api/lignes/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const postes = db.prepare('SELECT id FROM Postes WHERE ligne_id = ?').all(id);
+    for (const p of postes) {
+      db.prepare('DELETE FROM Affectations WHERE poste_id = ?').run(p.id);
+    }
+    db.prepare('DELETE FROM Postes WHERE ligne_id = ?').run(id);
+    db.prepare('DELETE FROM Lignes WHERE id = ?').run(id);
+    res.json({ success: true, message: `Ligne #${id} supprimée avec succès` });
+  } catch (err) {
+    console.error('Erreur DELETE /api/lignes/:id:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── 2.4 Créer un poste sur une ligne ─────────────────────────────────────────
+app.post('/api/postes', (req, res) => {
+  try {
+    const { ligne_id, nom, competence, niveau_requis = 1, cadence = 120, est_critique = 0 } = req.body;
+    if (!ligne_id || !nom || !competence) {
+      return res.status(400).json({ error: 'ligne_id, nom et competence sont requis' });
+    }
+    const info = db.prepare(`
+      INSERT INTO Postes (ligne_id, nom, competence, niveau_requis, cadence, est_critique)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(
+      Number(ligne_id),
+      nom.trim(),
+      competence.trim(),
+      Number(niveau_requis) || 1,
+      Number(cadence) || 120,
+      est_critique ? 1 : 0
+    );
+    const newPosteId = Number(info.lastInsertRowid);
+    db.prepare('INSERT OR IGNORE INTO Affectations (poste_id, operateur_id) VALUES (?, NULL)').run(newPosteId);
+
+    const poste = db.prepare('SELECT * FROM Postes WHERE id = ?').get(newPosteId);
+    res.status(201).json({
+      id: poste.id,
+      nom: poste.nom,
+      ligne_id: poste.ligne_id,
+      est_critique: Boolean(poste.est_critique),
+      cadence: poste.cadence,
+      competence: poste.competence,
+      niveau_requis: poste.niveau_requis,
+      operateur: null
+    });
+  } catch (err) {
+    console.error('Erreur POST /api/postes:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── 2.5 Modifier un poste ────────────────────────────────────────────────────
+app.put('/api/postes/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nom, competence, niveau_requis, cadence, est_critique } = req.body;
+    const existing = db.prepare('SELECT * FROM Postes WHERE id = ?').get(id);
+    if (!existing) {
+      return res.status(404).json({ error: 'Poste introuvable' });
+    }
+    db.prepare(`
+      UPDATE Postes
+      SET nom = COALESCE(?, nom),
+          competence = COALESCE(?, competence),
+          niveau_requis = COALESCE(?, niveau_requis),
+          cadence = COALESCE(?, cadence),
+          est_critique = COALESCE(?, est_critique)
+      WHERE id = ?
+    `).run(
+      nom !== undefined ? nom.trim() : null,
+      competence !== undefined ? competence.trim() : null,
+      niveau_requis !== undefined ? Number(niveau_requis) : null,
+      cadence !== undefined ? Number(cadence) : null,
+      est_critique !== undefined ? (est_critique ? 1 : 0) : null,
+      id
+    );
+    const updated = db.prepare('SELECT * FROM Postes WHERE id = ?').get(id);
+    res.json({
+      ...updated,
+      est_critique: Boolean(updated.est_critique)
+    });
+  } catch (err) {
+    console.error('Erreur PUT /api/postes/:id:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── 2.6 Supprimer un poste ───────────────────────────────────────────────────
+app.delete('/api/postes/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    db.prepare('DELETE FROM Affectations WHERE poste_id = ?').run(id);
+    db.prepare('DELETE FROM Postes WHERE id = ?').run(id);
+    res.json({ success: true, message: `Poste #${id} supprimé avec succès` });
+  } catch (err) {
+    console.error('Erreur DELETE /api/postes/:id:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── 3. Opérateurs (avec compétences et certifications) ───────────────────────
 app.get('/api/operateurs', (req, res) => {
   try {
