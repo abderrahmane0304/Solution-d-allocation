@@ -273,5 +273,5 @@ Le backend utilise **SQLite embarqué** (`better-sqlite3`), auto-créé et seed�
 
 
 ## 👥 Auteurs :
-BENHAYOUN Abderrahmane
+BENHAYOUN Abderrahmane  /  
 SIRAGI Souha
