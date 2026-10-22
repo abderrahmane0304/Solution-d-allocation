@@ -271,47 +271,7 @@ Le backend utilise **SQLite embarqué** (`better-sqlite3`), auto-créé et seed�
 - `PUT /api/parametres` : Met à jour les coefficients de pondération.
 - `GET /api/health` : État de santé de l'API (`{ status: "ok", database: "sqlite" }`).
 
----
 
-## 🚀 Instructions Git : Publication GitHub & GitLab
-
-Pour publier ce projet sur vos comptes **GitHub** et **GitLab**, suivez les étapes ci-dessous :
-
-### 1. Initialiser le dépôt Git local
-```bash
-git init -b main
-git add .
-git commit -m "feat: initial commit - solution complète SAIOT Textile (React, Express, SQLite, Gemini AI, Multi-shifts)"
-```
-
-### 2. Publier sur votre GitHub
-1. Créez un nouveau dépôt vide sur votre compte GitHub (ex: `saiot-textile`).
-2. Liez le remote et poussez le code :
-```bash
-git remote add origin https://github.com/VOTRE_NOM_UTILISATEUR/saiot-textile.git
-git push -u origin main
-```
-
-### 3. Publier sur votre GitLab
-1. Créez un nouveau projet vide sur votre compte GitLab (ex: `saiot-textile`).
-2. Ajoutez le remote GitLab (nommé `gitlab`) et poussez le code :
-```bash
-git remote add gitlab https://gitlab.com/VOTRE_NOM_UTILISATEUR/saiot-textile.git
-git push -u gitlab main
-```
-
-> **Astuce Pousser sur les Deux en une Seule Commande** :
-> Vous pouvez configurer Git pour pousser simultanément sur GitHub et GitLab :
-> ```bash
-> git remote set-url --add --push origin https://github.com/VOTRE_NOM_UTILISATEUR/saiot-textile.git
-> git remote set-url --add --push origin https://gitlab.com/VOTRE_NOM_UTILISATEUR/saiot-textile.git
-> git push origin main
-> ```
-
----
-
-## 👥 Auteurs & Remerciements
-- **Projet** : SAIOT — Système d'Allocation Intelligente des Opérateurs Textiles
-- **Institution** : École Supérieure des Industries du Textile et de l'Habillement (**ESITH**)
-- **Version** : 1.2.0 (Production Ready)
-- **Licence** : MIT
+## 👥 Auteurs :
+BENHAYOUN Abderrahmane
+SIRAGI Souha
