@@ -266,7 +266,9 @@ const LoginPage = ({ onLogin }) => {
             disabled={loading}
             style={{ marginTop: '0.5rem', width: '100%', padding: '0.85rem', background: 'linear-gradient(135deg, var(--accent-indigo), #4f46e5)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 4px 15px rgba(79, 70, 229, 0.4)', transition: '0.2s' }}
           >
-            {loading ? <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Authentification...</> : <><LogIn size={18} /> Se connecter à l'Atelier</>}
+            {loading
+              ? <span key="loading" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Authentification...</span>
+              : <span key="idle" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><LogIn size={18} /> Se connecter à l'Atelier</span>}
           </button>
         </form>
 
@@ -462,7 +464,9 @@ const ShiftConfigModal = ({ onClose, shifts, nombreShifts, onSaveConfig }) => {
               transition: '0.2s'
             }}
           >
-            {saved ? <><CheckCircle2 size={18} /> Configuration enregistrée !</> : <><Save size={18} /> Valider l'organisation ({selectedNb} {selectedNb > 1 ? 'shifts' : 'shift'})</>}
+            {saved
+              ? <span key="saved" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} /> Configuration enregistrée !</span>
+              : <span key="idle" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><Save size={18} /> Valider l'organisation ({selectedNb} {selectedNb > 1 ? 'shifts' : 'shift'})</span>}
           </button>
         </div>
       </div>
@@ -525,7 +529,9 @@ const AbsenceModal = ({ onClose, operateurs, onDeclareAbsence }) => {
             disabled={!form.operateur_id || saved}
             style={{ width: '100%', padding: '0.75rem', background: saved ? 'var(--status-ok)' : 'var(--status-critical)', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: '0.2s', opacity: !form.operateur_id ? 0.5 : 1 }}
           >
-            {saved ? <><CheckCircle2 size={18} /> Absence enregistrée !</> : <><AlertCircle size={18} /> Confirmer l'absence</>}
+            {saved
+              ? <span key="saved" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} /> Absence enregistrée !</span>
+              : <span key="idle" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><AlertCircle size={18} /> Confirmer l'absence</span>}
           </button>
         </div>
       </div>
@@ -610,8 +616,8 @@ const CandidatCard = ({ candidat, poste, index, onAssign, processingId, isRecomm
           style={{ background: isRecommended ? 'var(--accent-indigo)' : 'transparent', color: isRecommended ? 'white' : 'var(--accent-indigo)', border: `1px solid ${isRecommended ? 'transparent' : 'var(--accent-indigo)'}`, padding: '0.4rem 0.85rem', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
         >
           {processingId === candidat.id
-            ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Affectation...</>
-            : <><Sparkles size={14} /> Affecter</>}
+            ? <span key="assigning" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Affectation...</span>
+            : <span key="idle" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}><Sparkles size={14} /> Affecter</span>}
         </button>
       </div>
 
@@ -1655,7 +1661,9 @@ function ParametresPage({ currentUser, shifts, nombreShifts, onSaveShiftConfig }
               ))}
 
               <button onClick={handleSaveWeights} disabled={totalW !== 100} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.5rem', background: saveSuccess ? 'var(--status-ok)' : totalW === 100 ? 'var(--accent-indigo)' : 'var(--bg-base)', border: 'none', borderRadius: '8px', color: totalW === 100 ? 'white' : 'var(--text-muted)', fontWeight: 700, cursor: totalW === 100 ? 'pointer' : 'not-allowed', transition: '0.2s' }}>
-                {saveSuccess ? <><CheckCircle2 size={16} /> Poids enregistrés en base !</> : <><Save size={16} /> Appliquer les Poids</>}
+                {saveSuccess
+                  ? <span key="saved" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={16} /> Poids enregistrés en base !</span>
+                  : <span key="idle" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><Save size={16} /> Appliquer les Poids</span>}
               </button>
             </div>
           )}

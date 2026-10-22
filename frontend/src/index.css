@@ -115,6 +115,10 @@ body {
   color: var(--accent-indigo);
 }
 
+.nav-item * {
+  pointer-events: none;
+}
+
 /* Main Content */
 .main-content {
   flex: 1;
