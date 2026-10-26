@@ -76,7 +76,7 @@ if not exist "%FRONTEND_DIR%\.env" (
 
 :: 6. Demarrage du serveur Backend API (Port 3000)
 echo [4/4] Demarrage des serveurs SAIOT...
-start "SAIOT - Backend API (Port 3000)" /D "%BACKEND_DIR%" cmd /k "title SAIOT Backend API && color 0A && node src/server.js"
+start powershell -NoProfile -Command "Set-Location '%BACKEND_DIR%'; $host.ui.RawUI.WindowTitle = 'SAIOT Backend API (Port 3000)'; node src/server.js"
 
 :: 7. Ouverture automatique du navigateur apres un court delai
 start "" powershell -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 3; Start-Process 'http://localhost:5173/'"
